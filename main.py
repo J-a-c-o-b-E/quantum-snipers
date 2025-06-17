@@ -22,11 +22,15 @@ async def handler(event):
 
     text = msg.text.lower()
 
-    # 🚨 1. Forward SIGNAL ALERT (text only)
+    # 🚨 1. Forward SIGNAL ALERT (text + image)
     if 'signal alert' in text:
-        sent = await client.send_message(target_channel, msg.text)
+        sent = await client.send_file(
+            target_channel,
+            '/mnt/data/NEWSIGNALQS.png',
+            caption=msg.text
+        )
         latest_signal_map[msg.id] = sent.id
-        print(f"✅ Forwarded SIGNAL ALERT — id {msg.id}")
+        print(f"✅ Forwarded SIGNAL ALERT w/ image — id {msg.id}")
         return
 
     # 📌 2. Forward replies (TP/SL) as reply to SIGNAL ALERT
