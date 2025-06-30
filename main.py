@@ -1,5 +1,6 @@
 from telethon import TelegramClient, events
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
+import os
 
 api_id = 29624898
 api_hash = '5b4a9c274b2d7bc48847d527b2721330'
@@ -7,7 +8,8 @@ api_hash = '5b4a9c274b2d7bc48847d527b2721330'
 source_channel = -1001220837618
 target_channel = -1002771892101
 
-client = TelegramClient('forwarder_session', api_id, api_hash)
+session_name = os.getenv("SESSION_NAME", "default_session")
+client = TelegramClient(session_name, api_id, api_hash)
 
 KEYWORDS = ['tp1', 'tp2', 'tp3', 'sl']
 latest_signal_map = {}
