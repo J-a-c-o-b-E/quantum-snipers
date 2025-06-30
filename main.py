@@ -2,6 +2,7 @@ from telethon import TelegramClient, events
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 import os
 
+
 api_id = 29624898
 api_hash = '5b4a9c274b2d7bc48847d527b2721330'
 
@@ -12,6 +13,8 @@ session_name = os.getenv("SESSION_NAME", "default_session")
 client = TelegramClient(session_name, api_id, api_hash)
 
 KEYWORDS = ['tp1', 'tp2', 'tp3', 'sl']
+
+# store the last SIGNAL ALERT msg id from the source and the forwarded id
 latest_signal_map = {}
 
 @client.on(events.NewMessage(chats=source_channel))
@@ -24,48 +27,46 @@ async def handler(event):
 
     text = msg.text.lower()
 
-    # 🚨 1. Forward SIGNAL ALERT (text + image)
+    # 🚨 If it's a SIGNAL ALERT
     if 'signal alert' in text:
-        sent = await client.send_file(
-            target_channel,
-            '/mnt/data/NEWSIGNALQS.png',
-            caption=msg.text
-        )
+        sent = await client.send_message(target_channel, msg.text)
         latest_signal_map[msg.id] = sent.id
-        print(f"✅ Forwarded SIGNAL ALERT w/ image — id {msg.id}")
+        print(f"✅ SIGNAL ALERT forwarded (text only) — id {msg.id}")
         return
 
-    # 📌 2. Forward replies (TP/SL) as reply to SIGNAL ALERT
+    # 📌 If it's a reply with TP/SL
     if any(k in text for k in KEYWORDS) and msg.reply_to_msg_id:
         original_id = msg.reply_to_msg_id
         if original_id in latest_signal_map:
-            reply_to = latest_signal_map[original_id]
+            forwarded_reply_to = latest_signal_map[original_id]
 
             if msg.media and isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument)):
                 await client.send_file(
                     target_channel,
                     msg.media,
                     caption=msg.text or "",
-                    reply_to=reply_to
+                    reply_to=forwarded_reply_to
                 )
-                print(f"📷 Reply w/ media → SIGNAL ALERT — id {msg.id}")
+                print(f"📷 Forwarded reply with media — id {msg.id}")
             else:
                 await client.send_message(
                     target_channel,
                     msg.text,
-                    reply_to=reply_to
+                    reply_to=forwarded_reply_to
                 )
-                print(f"↪️ Reply (text only) → SIGNAL ALERT — id {msg.id}")
-        return
+                print(f"↪️ Forwarded reply (text only) — id {msg.id}")
 
-    print(f"⛔ Skipped — id {msg.id}")
+# ✅ Start bot
+import asyncio
 
-async def start_bot():
+async def main():
     await client.connect()
-    if not await client.is_user_authorized():
-        print("❌ Not authorized — run locally to generate session first")
-        return
-    print("✅ Bot is live and listening...")
+    await client.start()  # will trigger phone number + code login
+    print(f"✅ Logged in — session saved as: {session_name}")
+
+    print(f"✅ Bot is running using session: {session_name}")
     await client.run_until_disconnected()
 
-client.loop.run_until_complete(start_bot())
+if __name__ == "__main__":
+    asyncio.run(main())
+
